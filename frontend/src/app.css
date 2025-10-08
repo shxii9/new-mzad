@@ -1,0 +1,22 @@
+/* src/app.css */
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f0f2f5;
+    direction: rtl; 
+    text-align: right;
+    padding-top: 56px;
+}
+.main-content {
+    min-height: calc(100vh - 100px); 
+}
+.card {
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transition: transform 0.3s;
+}
+.card:hover {
+    transform: translateY(-5px);
+}
+footer {
+    background-color: #343a40 !important;
+}
