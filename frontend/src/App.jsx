@@ -1,60 +1,74 @@
-// src/App.jsx
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { Toaster } from "@/components/ui/toaster"; // 1. استيراد Toaster الجديد
 
+// استيراد المكونات الأساسية
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import ProtectedRoute from './components/ProtectedRoute';
 
-// الصفحات الرئيسية
-import AuctionList from './pages/AuctionList';
-import AuctionDetails from './pages/AuctionDetails';
-// صفحات المصادقة (التسجيل والدخول)
-import Login from './Login';
-import Register from './Register';
+// استيراد الصفحات
+import AuctionList from "./pages/AuctionList";
+import AuctionDetails from "./pages/AuctionDetails";
+import CreateAuction from "./pages/CreateAuction";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import VendorDashboard from "./pages/VendorDashboard";
+// import AdminCategory from "./pages/AdminCategory"; // يمكنك إعادة تفعيله لاحقًا
 
-// صفحات التاجر والمدير
-import CreateAuction from './pages/CreateAuction';
-import VendorDashboard from './pages/VendorDashboard';
-import CategoryManagement from './pages/CategoryManagement';
-
-// مسارات الحماية
-import AdminRoute from './components/AdminRoute';
-import VendorRoute from './components/VendorRoute';
-
-const App = () => {
+function App() {
   return (
     <Router>
-      <Navbar />
-      <main className="container-fluid py-3 main-content">
-        <Routes>
-          {/* مسارات عامة للجميع */}
-          <Route path="/" element={<AuctionList />} />
-          <Route path="/auctions/:id" element={<AuctionDetails />} />
-          
-          {/* 🔴 المسارات التي كنت تفتقدها 
-             - تم وضعها في نقطة دخول الملف (src) */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          
-          {/* مسارات التاجر (تتطلب تسجيل دخول كـ user أو admin) */}
-          <Route element={<VendorRoute />}>
-            <Route path="/vendor/create-auction" element={<CreateAuction />} />
-            <Route path="/vendor/dashboard" element={<VendorDashboard />} />
-          </Route>
-          
+      {/* وضع Toaster هنا ليظهر فوق كل شيء */}
+      <Toaster />
+      
+      <div className="flex flex-col min-h-screen">
+        <Navbar />
+        <main className="flex-grow container mx-auto px-4 py-8">
+          <Routes>
+            {/* --- المسارات العامة --- */}
+            <Route path="/" element={<AuctionList />} />
+            <Route path="/auctions/:id" element={<AuctionDetails />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
 
-          {/* مسارات المدير (تتطلب تسجيل دخول كـ admin فقط) */}
-          <Route element={<AdminRoute />}>
-            <Route path="/admin/categories" element={<CategoryManagement />} />
-          </Route>
+            {/* --- المسارات المحمية --- */}
+            <Route 
+              path="/create-auction" 
+              element={
+                <ProtectedRoute>
+                  <CreateAuction />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <VendorDashboard />
+                </ProtectedRoute>
+              } 
+            />
 
-        </Routes>
-      </main>
-      <Footer />
-      <ToastContainer position="bottom-right" />
+            {/* --- مسار المدير (مثال) --- */}
+            {/*
+            <Route 
+              path="/admin/categories" 
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminCategory />
+                </ProtectedRoute>
+              } 
+            />
+            */}
+            
+            {/* يمكنك إضافة صفحة 404 هنا */}
+            {/* <Route path="*" element={<NotFoundPage />} /> */}
+          </Routes>
+        </main>
+        <Footer />
+      </div>
     </Router>
   );
-};
+}
 
 export default App;

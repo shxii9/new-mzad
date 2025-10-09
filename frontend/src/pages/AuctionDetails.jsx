@@ -1,176 +1,74 @@
-// src/pages/AuctionDetails.jsx
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect, useContext } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
-import { toast } from 'react-toastify';
-import { FaDollarSign, FaClock, FaTags, FaUserTie, FaHistory, FaPlus } from 'react-icons/fa';
+import { AuthContext } from '@/context/AuthContext';
+import { useCountdown } from '@/hooks/use-countdown';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 
 const AuctionDetails = () => {
     const { id } = useParams();
+    const { user, token } = useContext(AuthContext);
+    const { toast } = useToast();
     const [auction, setAuction] = useState(null);
     const [loading, setLoading] = useState(true);
     const [bidAmount, setBidAmount] = useState('');
-    const token = localStorage.getItem('token');
-    const userRole = localStorage.getItem('userRole');
+    const [isBidding, setIsBidding] = useState(false);
+    const { days, hours, minutes, seconds, isFinished } = useCountdown(auction?.deadline);
 
-    // دالة لجلب تفاصيل المزاد
     const fetchAuctionDetails = async () => {
         try {
-            const res = await axios.get(`http://localhost:5001/api/auctions/${id}`);
+            const res = await axios.get(`http://localhost:3000/api/auctions/${id}` );
             setAuction(res.data.data);
-            setLoading(false);
-        } catch (error) {
-            toast.error('فشل في جلب تفاصيل المزاد.');
-            setLoading(false);
-        }
+        } catch (error) { toast({ variant: "destructive", title: "خطأ", description: "فشل في جلب تفاصيل المزاد." }); }
+        finally { setLoading(false); }
     };
+    useEffect(() => { fetchAuctionDetails(); }, [id]);
 
-    useEffect(() => {
-        fetchAuctionDetails();
-    }, [id]);
-
-    // دالة لوضع مزايدة جديدة
     const handlePlaceBid = async (e) => {
         e.preventDefault();
-        const amount = parseFloat(bidAmount);
-
-        if (!token) {
-            toast.error('يجب تسجيل الدخول للمزايدة.');
-            return;
-        }
-
-        if (amount <= auction.currentPrice) {
-            toast.error(`يجب أن تكون المزايدة أكبر من السعر الحالي: ${auction.currentPrice.toLocaleString()} $`);
-            return;
-        }
-
+        setIsBidding(true);
         try {
-            const config = {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                },
-            };
-            
-            await axios.post(`http://localhost:5001/api/auctions/${id}/bid`, { amount }, config);
-            
-            toast.success('تم وضع مزايدة جديدة بنجاح!');
+            await axios.post(`http://localhost:3000/api/auctions/${id}/bid`, { amount: parseFloat(bidAmount ) }, { headers: { Authorization: `Bearer ${token}` } });
+            toast({ title: "نجاح!", description: "تم وضع مزايدتك بنجاح." });
             setBidAmount('');
-            fetchAuctionDetails(); // إعادة جلب البيانات لتحديث السعر والسجل
+            fetchAuctionDetails();
         } catch (error) {
             const message = error.response?.data?.message || 'فشل وضع المزايدة.';
-            toast.error(message);
-        }
+            toast({ variant: "destructive", title: "خطأ", description: message });
+        } finally { setIsBidding(false); }
     };
 
-    if (loading) {
-        return <div className="text-center mt-5">جاري تحميل تفاصيل المزاد...</div>;
-    }
-
-    if (!auction) {
-        return <div className="alert alert-danger text-center mt-5">المزاد المطلوب غير موجود.</div>;
-    }
-
-    // فرز المزايدات من الأحدث إلى الأقدم
-    const sortedBids = auction.bids.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    if (loading) return <div className="container py-8 text-center">جاري التحميل...</div>;
+    if (!auction) return <div className="container py-8 text-center">لم يتم العثور على المزاد.</div>;
 
     return (
-        <div dir="rtl" className="mt-5 container">
-            <h1 className="mb-4 text-center text-primary">{auction.title}</h1>
-            
-            <div className="row">
-                {/* عمود الصورة والتفاصيل */}
-                <div className="col-lg-6 mb-4">
-                    <div className="card shadow-lg p-3">
-                        <img 
-                            src={auction.image || '/images/default.jpg'} 
-                            className="img-fluid rounded" 
-                            alt={auction.title} 
-                            style={{ maxHeight: '450px', objectFit: 'cover' }}
-                        />
-                        <h4 className="mt-4 mb-2">الوصف:</h4>
-                        <p className="text-muted">{auction.description}</p>
-                        
-                        <ul className="list-group list-group-flush mt-3">
-                            <li className="list-group-item d-flex justify-content-between align-items-center">
-                                <FaTags className="me-2 text-info" />
-                                الفئة: <strong>{auction.category.name}</strong>
-                            </li>
-                            <li className="list-group-item d-flex justify-content-between align-items-center">
-                                <FaUserTie className="me-2 text-success" />
-                                مقدم المزاد: <strong>{auction.user.name}</strong>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-
-                {/* عمود المزايدة والسجل */}
-                <div className="col-lg-6 mb-4">
-                    <div className="card shadow-lg p-4 mb-4 bg-light">
-                        <h3 className="text-center text-success mb-3">تفاصيل المزايدة</h3>
-                        
-                        <div className="alert alert-warning text-center">
-                            <strong><FaDollarSign /> السعر الحالي:</strong> {auction.currentPrice.toLocaleString()} $
-                        </div>
-                        <div className="alert alert-danger text-center">
-                            <strong><FaClock /> ينتهي في:</strong> {new Date(auction.deadline).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' })}
-                        </div>
-                        
-                        {/* نموذج المزايدة */}
-                        {token ? (
-                            <form onSubmit={handlePlaceBid} className="mt-4">
-                                <h4>وضع مزايدة جديدة:</h4>
-                                <div className="input-group mb-3">
-                                    <span className="input-group-text"><FaPlus /> $</span>
-                                    <input 
-                                        type="number" 
-                                        className="form-control" 
-                                        placeholder={`أدخل مبلغ أكبر من ${auction.currentPrice}`} 
-                                        value={bidAmount}
-                                        onChange={(e) => setBidAmount(e.target.value)}
-                                        min={auction.currentPrice + 1}
-                                        required
-                                    />
-                                    <button className="btn btn-success" type="submit">
-                                        المزايدة الآن
-                                    </button>
-                                </div>
-                            </form>
-                        ) : (
-                            <div className="alert alert-info text-center mt-4">
-                                الرجاء <Link to="/login">تسجيل الدخول</Link> لوضع مزايدة.
+        <div className="container py-8" dir="rtl">
+            <div className="grid md:grid-cols-2 gap-8">
+                <div><img src={auction.image} alt={auction.title} className="w-full rounded-lg shadow-lg object-cover" /></div>
+                <div className="flex flex-col space-y-6">
+                    <Card><CardHeader><CardTitle className="text-3xl">{auction.title}</CardTitle><CardDescription>مقدم من: {auction.user.name}</CardDescription></CardHeader><CardContent><p className="text-muted-foreground">{auction.description}</p></CardContent></Card>
+                    <Card>
+                        <CardHeader><CardTitle>تفاصيل المزايدة</CardTitle></CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="flex justify-between items-center text-2xl font-bold"><span>السعر الحالي:</span><span className="text-primary">{auction.currentPrice.toLocaleString()} ريال</span></div>
+                            <div className="p-4 rounded-lg bg-destructive/10 text-center">
+                                <div className="text-sm text-destructive mb-2">{isFinished ? 'المزاد مغلق' : 'الوقت المتبقي'}</div>
+                                {!isFinished && (<div className="flex justify-around font-mono text-2xl text-destructive"><span>{days}<small>ي</small></span><span>{hours}<small>س</small></span><span>{minutes}<small>د</small></span><span>{seconds}<small>ث</small></span></div>)}
                             </div>
-                        )}
-                    </div>
-                    
-                    {/* سجل المزايدات */}
-                    <div className="card shadow-lg p-4">
-                        <h4><FaHistory className="me-2" /> سجل المزايدات ({auction.bids.length})</h4>
-                        {sortedBids.length === 0 ? (
-                            <p className="text-muted text-center">لا توجد مزايدات بعد. كن أول مزايد!</p>
-                        ) : (
-                            <ul className="list-group list-group-flush">
-                                {sortedBids.slice(0, 5).map((bid, index) => (
-                                    <li key={index} className="list-group-item d-flex justify-content-between align-items-center">
-                                        <span className="fw-bold">{bid.user.name}</span>
-                                        <span className="badge bg-primary rounded-pill">
-                                            {bid.amount.toLocaleString()} $
-                                        </span>
-                                        <small className="text-muted">
-                                            قبل: {new Date(bid.createdAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
-                                        </small>
-                                    </li>
-                                ))}
-                                {sortedBids.length > 5 && (
-                                    <li className="list-group-item text-center text-info">... والمزيد ({sortedBids.length - 5})</li>
-                                )}
-                            </ul>
-                        )}
-                    </div>
+                            {user && !isFinished ? (
+                                <form onSubmit={handlePlaceBid} className="pt-4 space-y-2">
+                                    <Input type="number" placeholder={`أدخل مبلغًا أكبر من ${auction.currentPrice}`} value={bidAmount} onChange={(e) => setBidAmount(e.target.value)} min={auction.currentPrice + 1} required disabled={isBidding} />
+                                    <Button type="submit" className="w-full" disabled={isBidding}>{isBidding ? 'جاري المزايدة...' : 'زايد الآن'}</Button>
+                                </form>
+                            ) : (<div className="pt-4 text-center text-muted-foreground">{isFinished ? 'لا يمكن المزايدة على مزاد منتهي.' : <Link to="/login" className="text-primary hover:underline">سجل الدخول للمزايدة</Link>}</div>)}
+                        </CardContent>
+                    </Card>
                 </div>
             </div>
         </div>
     );
 };
-
 export default AuctionDetails;

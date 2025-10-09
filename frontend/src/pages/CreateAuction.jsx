@@ -1,141 +1,64 @@
-// src/pages/CreateAuction.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
-import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
-import { FaPlusCircle, FaDollarSign, FaFileAlt, FaTags, FaCalendarAlt } from 'react-icons/fa';
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 const CreateAuction = () => {
+    const [formData, setFormData] = useState({ title: '', description: '', startingPrice: '', deadline: '' });
+    const [image, setImage] = useState(null);
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
-    const [categories, setCategories] = useState([]);
-    const [formData, setFormData] = useState({
-        title: '',
-        description: '',
-        category: '',
-        startingPrice: '',
-        deadline: '',
-    });
+    const { toast } = useToast();
 
-    const token = localStorage.getItem('token');
-    const { title, description, category, startingPrice, deadline } = formData;
-
-    // 1. جلب قائمة الفئات
-    useEffect(() => {
-        const fetchCategories = async () => {
-            try {
-                const res = await axios.get('http://localhost:5001/api/categories');
-                setCategories(res.data.data);
-            } catch (error) {
-                toast.error('فشل في جلب الفئات.');
-            }
-        };
-
-        if (token) {
-            fetchCategories();
-        } else {
-            toast.error('الرجاء تسجيل الدخول كتاجر لإضافة مزاد.');
-            navigate('/login');
-        }
-    }, [token, navigate]);
-
-    const onChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
+    const onChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+    const onFileChange = (e) => setImage(e.target.files[0]);
 
     const onSubmit = async (e) => {
         e.preventDefault();
-
-        // فحص مبدئي لتاريخ الانتهاء
-        if (new Date(deadline) <= new Date()) {
-            toast.error('يجب أن يكون تاريخ انتهاء المزاد في المستقبل.');
-            return;
-        }
+        setLoading(true);
+        const data = new FormData();
+        data.append('title', formData.title);
+        data.append('description', formData.description);
+        data.append('startingPrice', formData.startingPrice);
+        data.append('deadline', formData.deadline);
+        if (image) data.append('image', image);
 
         try {
-            const config = {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                },
-            };
-            
-            await axios.post('http://localhost:5001/api/auctions', formData, config);
-            
-            toast.success('تم إنشاء المزاد بنجاح! سيتم مراجعته.');
-            navigate('/vendor/dashboard');
-        } catch (error) {
-            const message = error.response?.data?.message || 'فشل في إنشاء المزاد.';
-            toast.error(message);
-        }
+            const token = localStorage.getItem('token');
+            await axios.post('http://localhost:3000/api/auctions', data, {
+                headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${token}` }
+            } );
+            toast({ title: "نجاح!", description: "تم إنشاء المزاد بنجاح." });
+            navigate('/');
+        } catch (err) {
+            const message = err.response?.data?.message || 'فشل إنشاء المزاد.';
+            toast({ variant: "destructive", title: "خطأ", description: message });
+        } finally { setLoading(false); }
     };
 
     return (
-        <div className="row justify-content-center main-content" dir="rtl">
-            <div className="col-lg-8">
-                <div className="card shadow-lg mt-5">
-                    <div className="card-header bg-info text-dark text-center rounded-top">
-                        <FaPlusCircle size={30} className="me-2" />
-                        <h2 className="d-inline">إضافة مزاد جديد</h2>
-                    </div>
-                    <div className="card-body p-4">
-                        <form onSubmit={onSubmit}>
-                            
-                            {/* العنوان */}
-                            <div className="input-group mb-3">
-                                <span className="input-group-text"><FaFileAlt /></span>
-                                <input type="text" className="form-control" name="title" value={title} onChange={onChange} placeholder="عنوان المزاد (مثال: سيارة مرسيدس موديل 2024)" required />
-                            </div>
-
-                            {/* الوصف */}
-                            <div className="mb-3">
-                                <textarea className="form-control" name="description" value={description} onChange={onChange} placeholder="وصف تفصيلي للمنتج..." rows="4" required />
-                            </div>
-
-                            {/* الفئة والسعر (في سطر واحد) */}
-                            <div className="row">
-                                <div className="col-md-6 mb-3">
-                                    <div className="input-group">
-                                        <span className="input-group-text"><FaTags /></span>
-                                        <select className="form-select" name="category" value={category} onChange={onChange} required>
-                                            <option value="">اختر الفئة...</option>
-                                            {categories.map((cat) => (
-                                                <option key={cat._id} value={cat._id}>
-                                                    {cat.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-                                <div className="col-md-6 mb-3">
-                                    <div className="input-group">
-                                        <span className="input-group-text"><FaDollarSign /></span>
-                                        <input type="number" className="form-control" name="startingPrice" value={startingPrice} onChange={onChange} placeholder="سعر البداية" min="1" required />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* تاريخ الانتهاء */}
-                            <div className="input-group mb-3">
-                                <span className="input-group-text"><FaCalendarAlt /></span>
-                                {/* استخدام 'datetime-local' لإدخال التاريخ والوقت */}
-                                <input type="datetime-local" className="form-control" name="deadline" value={deadline} onChange={onChange} required />
-                            </div>
-
-                            {/* حقل الصورة (سيتم تطويره لرفع الملفات لاحقًا، الآن مجرد حقل نصي) */}
-                            <div className="mb-3">
-                                <label className="form-label text-muted">رابط/مسار الصورة (مؤقت)</label>
-                                <input type="text" className="form-control" name="image" onChange={onChange} placeholder="أدخل مسار الصورة هنا (مثال: /uploads/car.jpg)" />
-                            </div>
-
-                            <button type="submit" className="btn btn-info text-dark w-100 mt-3">
-                                <FaPlusCircle className="me-1" /> إنشاء المزاد الآن
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
+        <div className="container py-8" dir="rtl">
+            <Card className="max-w-2xl mx-auto">
+                <CardHeader><CardTitle className="text-2xl">إنشاء مزاد جديد</CardTitle><CardDescription>املأ التفاصيل أدناه لبدء مزادك</CardDescription></CardHeader>
+                <CardContent>
+                    <form onSubmit={onSubmit} className="space-y-4">
+                        <div className="space-y-2"><Label htmlFor="title">عنوان المزاد</Label><Input id="title" name="title" required value={formData.title} onChange={onChange} /></div>
+                        <div className="space-y-2"><Label htmlFor="description">الوصف</Label><Textarea id="description" name="description" required value={formData.description} onChange={onChange} /></div>
+                        <div className="grid sm:grid-cols-2 gap-4">
+                            <div className="space-y-2"><Label htmlFor="startingPrice">السعر المبدئي (ريال)</Label><Input id="startingPrice" name="startingPrice" type="number" required value={formData.startingPrice} onChange={onChange} /></div>
+                            <div className="space-y-2"><Label htmlFor="deadline">تاريخ انتهاء المزاد</Label><Input id="deadline" name="deadline" type="datetime-local" required value={formData.deadline} onChange={onChange} /></div>
+                        </div>
+                        <div className="space-y-2"><Label htmlFor="image">صورة المنتج</Label><Input id="image" type="file" onChange={onFileChange} className="file:text-primary" /></div>
+                        <Button type="submit" className="w-full" disabled={loading}>{loading ? 'جاري الإنشاء...' : 'إنشاء المزاد'}</Button>
+                    </form>
+                </CardContent>
+            </Card>
         </div>
     );
 };
-
 export default CreateAuction;

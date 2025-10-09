@@ -10,7 +10,7 @@ dotenv.config();
 connectDB();
 const app = express();
 
-// **ملحوظة مهمة:** يجب تحديث العنوان الأمامي هنا إلى المنفذ الجديد إذا كنت تستخدم منفذًا غير 5173
+// تأكد من أن الواجهة الأمامية تستخدم المنفذ 5173
 app.use(cors({ origin: 'http://localhost:5173' })); 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -19,7 +19,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/auctions', auctionRoutes);
 
-const PORT = process.env.PORT || 5001; // تم تغيير الاحتياطي إلى 5001
+// المنفذ هو 5002 (من .env أو احتياطي)
+const PORT = process.env.PORT || 5002; 
 app.listen(
     PORT,
     console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`)

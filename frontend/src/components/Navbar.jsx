@@ -1,90 +1,87 @@
-// src/components/Navbar.jsx
-import React from 'react';
+import { useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
-import { FaGavel, FaSignInAlt, FaUserPlus, FaSignOutAlt, FaTachometerAlt, FaPlusCircle, FaListAlt } from 'react-icons/fa';
+import { AuthContext } from '@/context/AuthContext';
+import { Button } from "@/components/ui/button";
+import { Gavel, LogOut, User, LayoutDashboard, PlusCircle } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-const Navbar = () => {
-    const navigate = useNavigate();
-    const role = localStorage.getItem('userRole');
+export default function Navbar() {
+  const { user, logout } = useContext(AuthContext);
+  const navigate = useNavigate();
 
-    const handleLogout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('userRole');
-        toast.info('تم تسجيل الخروج بنجاح!');
-        navigate('/login');
-        window.location.reload(); 
-    };
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
-    return (
-        <nav className="navbar navbar-expand-lg navbar-dark bg-dark fixed-top shadow" dir="rtl">
-            <div className="container-fluid">
-                <Link className="navbar-brand d-flex align-items-center" to="/">
-                    <FaGavel className="me-2 text-warning" size={24} />
-                    نظام المزادات الإلكتروني
-                </Link>
-                
-                <button type="button" className="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                    <span className="navbar-toggler-icon"></span>
-                </button>
-
-                <div className="collapse navbar-collapse" id="navbarNav">
-                    <ul className="navbar-nav me-auto">
-                        <li className="nav-item">
-                            <Link className="nav-link" to="/">
-                                <FaListAlt className="me-1" /> المزادات الحالية
-                            </Link>
-                        </li>
-
-                        {(role === 'user' || role === 'admin') && (
-                            <>
-                                <li className="nav-item">
-                                    <Link className="nav-link" to="/vendor/dashboard">
-                                        <FaTachometerAlt className="me-1" /> لوحة تحكم التاجر
-                                    </Link>
-                                </li>
-                                {role === 'admin' && (
-                                    <li className="nav-item">
-                                        <Link className="nav-link text-warning" to="/admin/categories">
-                                            إدارة الفئات
-                                        </Link>
-                                    </li>
-                                )}
-                                <li className="nav-item">
-                                    <Link className="btn btn-sm btn-info text-dark ms-3" to="/vendor/create-auction">
-                                        <FaPlusCircle className="me-1" /> إضافة مزاد
-                                    </Link>
-                                </li>
-                            </>
-                        )}
-                    </ul>
-
-                    <ul className="navbar-nav ms-auto">
-                        {role ? (
-                            <li className="nav-item">
-                                <button className="btn btn-danger" onClick={handleLogout}>
-                                    <FaSignOutAlt className="me-1" /> تسجيل خروج
-                                </button>
-                            </li>
-                        ) : (
-                            <>
-                                <li className="nav-item me-2">
-                                    <Link className="btn btn-outline-primary" to="/login">
-                                        <FaSignInAlt className="me-1" /> تسجيل الدخول
-                                    </Link>
-                                </li>
-                                <li className="nav-item">
-                                    <Link className="btn btn-success" to="/register">
-                                        <FaUserPlus className="me-1" /> تسجيل جديد
-                                    </Link>
-                                </li>
-                            </>
-                        )}
-                    </ul>
-                </div>
-            </div>
+  return (
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-16 items-center" dir="rtl">
+        <Link to="/" className="mr-auto flex items-center gap-2">
+          <Gavel className="h-7 w-7 text-blue-600" />
+          <span className="text-xl font-bold tracking-tight">مزادي</span>
+        </Link>
+        
+        <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
+          <Link to="/" className="text-foreground/60 transition-colors hover:text-foreground/80">
+            المزادات الحالية
+          </Link>
+          {user && (
+            <Link to="/dashboard" className="text-foreground/60 transition-colors hover:text-foreground/80">
+              لوحة التحكم
+            </Link>
+          )}
         </nav>
-    );
-};
 
-export default Navbar;
+        <div className="flex items-center gap-3 ml-4">
+          {user ? (
+            <>
+              <Button asChild className="hidden sm:flex">
+                <Link to="/create-auction">
+                  <PlusCircle className="ml-2 h-5 w-5" />
+                  أضف مزادًا
+                </Link>
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="secondary" size="icon" className="rounded-full">
+                    <User className="h-5 w-5" />
+                    <span className="sr-only">Toggle user menu</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" dir="rtl">
+                  <DropdownMenuLabel>أهلاً, {user.name}</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate('/dashboard')}>
+                    <LayoutDashboard className="ml-2 h-4 w-4" />
+                    <span>لوحة التحكم</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout} className="text-red-500 focus:text-red-500">
+                    <LogOut className="ml-2 h-4 w-4" />
+                    <span>تسجيل الخروج</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          ) : (
+            <div className="flex gap-2">
+              <Button variant="ghost" asChild>
+                <Link to="/login">تسجيل الدخول</Link>
+              </Button>
+              <Button asChild>
+                <Link to="/register">إنشاء حساب</Link>
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+}
