@@ -2,7 +2,7 @@ import { useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '@/context/AuthContext';
 import { Button } from "@/components/ui/button";
-import { Gavel, LogOut, User, LayoutDashboard, PlusCircle } from 'lucide-react';
+import { Gavel, LogOut, User, LayoutDashboard, PlusCircle, Bell } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,6 +47,11 @@ export default function Navbar() {
                 <Link to="/create-auction">
                   <PlusCircle className="ml-2 h-5 w-5" />
                   أضف مزادًا
+                </Link>
+              </Button>
+              <Button variant="ghost" size="icon" asChild>
+                <Link to="/notifications">
+                  <Bell className="h-5 w-5" />
                 </Link>
               </Button>
               <DropdownMenu>

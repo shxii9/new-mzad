@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const path = require('path'); // لإضافة المسار المطلق
 
 // تحميل الموديل باستخدام المسار المطلق
-const User = require('./app/Models/User/User'); 
+const User = require('./models/User'); 
 
 // قم بتحميل متغيرات البيئة قبل كل شيء
 dotenv.config();

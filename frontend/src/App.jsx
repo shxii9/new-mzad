@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Toaster } from "@/components/ui/toaster"; // 1. استيراد Toaster الجديد
+import { Toaster } from "@/components/ui/toaster";
+import { SocketProvider } from './context/SocketContext';
 
 // استيراد المكونات الأساسية
 import Navbar from './components/Navbar';
@@ -13,13 +14,15 @@ import CreateAuction from "./pages/CreateAuction";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import VendorDashboard from "./pages/VendorDashboard";
+import Notifications from "./pages/Notifications";
 // import AdminCategory from "./pages/AdminCategory"; // يمكنك إعادة تفعيله لاحقًا
 
 function App() {
   return (
     <Router>
-      {/* وضع Toaster هنا ليظهر فوق كل شيء */}
-      <Toaster />
+      <SocketProvider>
+        {/* وضع Toaster هنا ليظهر فوق كل شيء */}
+        <Toaster />
       
       <div className="flex flex-col min-h-screen">
         <Navbar />
@@ -48,6 +51,14 @@ function App() {
                 </ProtectedRoute>
               } 
             />
+            <Route 
+              path="/notifications" 
+              element={
+                <ProtectedRoute>
+                  <Notifications />
+                </ProtectedRoute>
+              } 
+            />
 
             {/* --- مسار المدير (مثال) --- */}
             {/*
@@ -67,6 +78,7 @@ function App() {
         </main>
         <Footer />
       </div>
+      </SocketProvider>
     </Router>
   );
 }

@@ -44,6 +44,10 @@ router.route('/')
 router.route('/my-auctions')
     .get(protect, getUserAuctions);
 
+// البحث في المزادات
+router.route('/search')
+    .get(getAuctions); // سنستخدم نفس الدالة مع query params
+
 // جلب مزاد معين حسب الـ ID
 router.route('/:id')
     .get(getAuctionById);

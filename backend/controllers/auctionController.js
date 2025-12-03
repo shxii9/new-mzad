@@ -57,6 +57,17 @@ exports.placeBid = asyncHandler(async (req, res) => {
 
     const populatedAuction = await Auction.findById(auction._id).populate('bids.user', 'name');
 
+    // إرسال تحديث فوري عبر Socket.IO
+    const io = req.app.get('io');
+    if (io) {
+        io.to(`auction-${auction._id}`).emit('bid-update', {
+            auctionId: auction._id,
+            currentPrice: amount,
+            lastBidder: req.user.name,
+            timestamp: new Date()
+        });
+    }
+
     res.status(200).json({
         success: true,
         message: 'تم وضع المزايدة بنجاح!',
@@ -65,14 +76,45 @@ exports.placeBid = asyncHandler(async (req, res) => {
 });
 
 
-// @desc    Get all active auctions
+// @desc    Get all active auctions with search and filter
 // @route   GET /api/auctions
 // @access  Public
 exports.getAuctions = asyncHandler(async (req, res) => {
-    const auctions = await Auction.find({ isClosed: false })
+    const { search, category, minPrice, maxPrice, sort } = req.query;
+    
+    let query = { isClosed: false };
+    
+    // البحث في العنوان والوصف
+    if (search) {
+        query.$or = [
+            { title: { $regex: search, $options: 'i' } },
+            { description: { $regex: search, $options: 'i' } }
+        ];
+    }
+    
+    // فلترة حسب الفئة
+    if (category) {
+        query.category = category;
+    }
+    
+    // فلترة حسب السعر
+    if (minPrice || maxPrice) {
+        query.currentPrice = {};
+        if (minPrice) query.currentPrice.$gte = parseFloat(minPrice);
+        if (maxPrice) query.currentPrice.$lte = parseFloat(maxPrice);
+    }
+    
+    // ترتيب النتائج
+    let sortOption = { createdAt: -1 }; // الافتراضي: الأحدث
+    if (sort === 'price_asc') sortOption = { currentPrice: 1 };
+    if (sort === 'price_desc') sortOption = { currentPrice: -1 };
+    if (sort === 'ending_soon') sortOption = { deadline: 1 };
+    
+    const auctions = await Auction.find(query)
         .populate('user', 'name email')
         .populate('category', 'name')
-        .sort({ createdAt: -1 });
+        .sort(sortOption);
+        
     res.status(200).json({ success: true, count: auctions.length, data: auctions });
 });
 

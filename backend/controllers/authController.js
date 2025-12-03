@@ -1,6 +1,6 @@
 const asyncHandler = require('../middleware/async');
 const ErrorResponse = require('../utils/errorResponse');
-const User = require('../app/Models/User');
+const User = require('../models/User');
 
 // دالة مساعدة لإرسال التوكن في الـ Response
 const sendTokenResponse = (user, statusCode, res) => {

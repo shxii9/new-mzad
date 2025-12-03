@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:6
+    container_name: auction_mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: auctiondb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - auction_network
+
+  # Backend API
+  backend:
+    build: ./backend
+    container_name: auction_backend
+    restart: unless-stopped
+    ports:
+      - "5002:5002"
+    environment:
+      NODE_ENV: production
+      PORT: 5002
+      MONGO_URI: mongodb://mongodb:27017/auctiondb
+      JWT_SECRET: ${JWT_SECRET}
+      FRONTEND_URL: http://localhost
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+    depends_on:
+      - mongodb
+    networks:
+      - auction_network
+
+  # Frontend
+  frontend:
+    build: ./frontend
+    container_name: auction_frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    environment:
+      VITE_API_URL: http://localhost:5002
+    depends_on:
+      - backend
+    networks:
+      - auction_network
+
+volumes:
+  mongodb_data:
+
+networks:
+  auction_network:
+    driver: bridge

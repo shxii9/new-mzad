@@ -40,4 +40,17 @@ UserSchema.pre('save', async function (next) {
     this.password = await bcrypt.hash(this.password, salt);
 });
 
+// توقيع رمز JWT وإعادته
+UserSchema.methods.getSignedJwtToken = function () {
+    const jwt = require('jsonwebtoken');
+    return jwt.sign({ id: this._id, role: this.role }, process.env.JWT_SECRET, {
+        expiresIn: '30d'
+    });
+};
+
+// مقارنة كلمة المرور المدخلة مع كلمة المرور المشفرة
+UserSchema.methods.matchPassword = async function (enteredPassword) {
+    return await bcrypt.compare(enteredPassword, this.password);
+};
+
 module.exports = mongoose.model('User', UserSchema);

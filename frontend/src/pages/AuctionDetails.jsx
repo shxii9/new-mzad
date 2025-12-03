@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '@/context/AuthContext';
+import { useSocket } from '@/context/SocketContext';
 import { useCountdown } from '@/hooks/use-countdown';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +13,7 @@ const AuctionDetails = () => {
     const { id } = useParams();
     const { user, token } = useContext(AuthContext);
     const { toast } = useToast();
+    const { socket, joinAuction, leaveAuction } = useSocket();
     const [auction, setAuction] = useState(null);
     const [loading, setLoading] = useState(true);
     const [bidAmount, setBidAmount] = useState('');
@@ -25,7 +27,42 @@ const AuctionDetails = () => {
         } catch (error) { toast({ variant: "destructive", title: "خطأ", description: "فشل في جلب تفاصيل المزاد." }); }
         finally { setLoading(false); }
     };
-    useEffect(() => { fetchAuctionDetails(); }, [id]);
+    useEffect(() => { 
+        fetchAuctionDetails(); 
+        
+        // الانضمام إلى غرفة المزاد
+        if (id) {
+            joinAuction(id);
+        }
+        
+        return () => {
+            if (id) {
+                leaveAuction(id);
+            }
+        };
+    }, [id]);
+    
+    // الاستماع للتحديثات الفورية
+    useEffect(() => {
+        if (!socket) return;
+        
+        socket.on('bid-update', (data) => {
+            if (data.auctionId === id) {
+                setAuction(prev => ({
+                    ...prev,
+                    currentPrice: data.currentPrice
+                }));
+                toast({ 
+                    title: "مزايدة جديدة!", 
+                    description: `${data.lastBidder} زايد بمبلغ ${data.currentPrice.toLocaleString()} ريال` 
+                });
+            }
+        });
+        
+        return () => {
+            socket.off('bid-update');
+        };
+    }, [socket, id]);
 
     const handlePlaceBid = async (e) => {
         e.preventDefault();
